@@ -27,12 +27,15 @@ validateAlphanumeric = toValidation isAlphaNumeric
 validateHasSpace :: String -> Maybe String
 validateHasSpace = toValidation (not . hasSpace)
 
+--Program
+validatePassword :: String -> Maybe String
+validatePassword password = validateMaxLengthTo5 password
+                            >>= validateAlphanumeric
+                            >>= validateHasSpace
+
 -- Main
 main :: IO ()
 main = do
   putStrLn "Please enter your password"
   password <- getLine
-  print (validateMaxLengthTo5 password)
-  print (validateAlphanumeric password)
-  print (validateHasSpace password)
-  
+  print (validatePassword password)
