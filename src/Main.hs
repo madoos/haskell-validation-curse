@@ -12,26 +12,26 @@ isAlphaNumeric = (all isAlphaNum)
 hasSpace :: String -> Bool
 hasSpace = any isSpace
 
--- Util
-toValidation :: (a -> Bool) -> a -> Maybe a
-toValidation predicate x | predicate x = Just x
-                         | otherwise = Nothing
+-- Util Either
+toEitherValidation :: (a -> Bool) -> String -> a -> Either String a
+toEitherValidation predicate validationMessage x = case (predicate x) of
+                                                    True -> Right x
+                                                    False -> Left validationMessage
+--Validations
+validateHasSpace :: String -> Either String String
+validateHasSpace = toEitherValidation (not . hasSpace) "It does not have to contain spaces"
 
--- Validations                       
-validateMaxLengthTo5 :: String -> Maybe String                        
-validateMaxLengthTo5 = toValidation (hasMaxLength 5)
+validateMaxLengthTo5 :: String -> Either String String                        
+validateMaxLengthTo5 = toEitherValidation (hasMaxLength 5) "The maximum size must be 5"
 
-validateAlphanumeric :: String -> Maybe String                        
-validateAlphanumeric = toValidation isAlphaNumeric
-
-validateHasSpace :: String -> Maybe String
-validateHasSpace = toValidation (not . hasSpace)
+validateAlphanumeric :: String -> Either String String                        
+validateAlphanumeric = toEitherValidation isAlphaNumeric "Only alphanumeric characters are allowed"
 
 --Program
-validatePassword :: String -> Maybe String
-validatePassword password = validateMaxLengthTo5 password
+validatePassword :: String -> Either String String
+validatePassword password = validateHasSpace password
                             >>= validateAlphanumeric
-                            >>= validateHasSpace
+                            >>= validateMaxLengthTo5
 
 -- Main
 main :: IO ()
