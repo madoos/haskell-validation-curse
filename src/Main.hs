@@ -1,12 +1,18 @@
 module Main where
 
 import Data.Char (isAlphaNum, isSpace)
+import Data.Validation
+import Data.Semigroup
 
 -- Types
 newtype Password = Password String deriving (Eq, Show)
 newtype Username = Username String deriving (Eq, Show)
-newtype Error = Error String deriving (Eq, Show)
 data User = User Username Password deriving (Eq, Show)
+
+newtype Error = Error [String] deriving (Eq, Show)
+
+instance Semigroup Error where 
+  Error xs <> Error ys = Error (xs <> ys)
 
 -- Predicates
 hasMaxLength :: Int -> String -> Bool 
@@ -18,33 +24,33 @@ isAlphaNumeric = all isAlphaNum
 hasSpace :: String -> Bool
 hasSpace = any isSpace
 
--- Util Either
-toEitherValidation :: (a -> Bool) -> Error -> a -> Either Error a
-toEitherValidation predicate validationMessage x | predicate x = Right x
-                                                 | otherwise = Left validationMessage
+-- Util Validation
+toValidation :: (a -> Bool) -> Error -> a -> Validation Error a
+toValidation predicate validationMessage x | predicate x = Success x
+                                           | otherwise = Failure validationMessage
 
 --Validations
-validateHasSpace :: String -> Either Error String
-validateHasSpace = toEitherValidation (not . hasSpace) (Error "It does not have to contain spaces")
+validateHasSpace :: String -> Validation Error String
+validateHasSpace = toValidation (not . hasSpace) (Error ["It does not have to contain spaces"])
 
-validateMaxLengthTo5 :: String -> Either Error String                        
-validateMaxLengthTo5 = toEitherValidation (hasMaxLength 5) (Error "The maximum size must be 5")
+validateMaxLengthTo5 :: String -> Validation Error String                        
+validateMaxLengthTo5 = toValidation (hasMaxLength 5) (Error ["The maximum size must be 5"])
 
-validateAlphanumeric :: String -> Either Error String                        
-validateAlphanumeric = toEitherValidation isAlphaNumeric (Error "Only alphanumeric characters are allowed")
+validateAlphanumeric :: String -> Validation Error String                        
+validateAlphanumeric = toValidation isAlphaNumeric (Error ["Only alphanumeric characters are allowed"])
 
 --Program
-validateUsername :: String -> Either Error String
+validateUsername :: String -> Validation Error String
 validateUsername username = validateAlphanumeric username
-                            >>= validateHasSpace
+                            <* validateHasSpace username
                             
 
-validatePassword :: String -> Either Error String
+validatePassword :: String -> Validation Error String
 validatePassword password = validateHasSpace password
-                            >>= validateAlphanumeric
-                            >>= validateMaxLengthTo5
+                            <* validateAlphanumeric password
+                            <* validateMaxLengthTo5 password
 
-validateCredentials :: String -> String -> Either Error User
+validateCredentials :: String -> String -> Validation Error User
 validateCredentials username password = User <$> username' <*> password' where
                                         username' = Username <$> validateUsername username
                                         password' = Password <$> validatePassword password
