@@ -3,6 +3,7 @@ module Main where
 import Data.Char (isAlphaNum, isSpace)
 import Data.Validation
 import Data.Semigroup
+import Data.Coerce (coerce)
 
 -- Types
 newtype Password = Password String deriving (Eq, Show)
@@ -49,17 +50,28 @@ validatePassword :: String -> Validation Error String
 validatePassword password = validateHasSpace password
                             <* validateAlphanumeric password
                             <* validateMaxLengthTo5 password
-
+                            
+identifyLabel :: String -> (a -> Validation Error a) -> a -> Validation Error a
+identifyLabel message f x = case f x of 
+                              Success x -> Success x  
+                              Failure error -> Failure   (Error [message] <> error) 
+                                                      
 validateCredentials :: String -> String -> Validation Error User
 validateCredentials username password = User <$> username' <*> password' where
-                                        username' = Username <$> validateUsername username
-                                        password' = Password <$> validatePassword password
+                                        username' = Username <$> identifyLabel "Username Errors:" validateUsername username
+                                        password' = Password <$> identifyLabel "Password Errors:" validatePassword password
+
+display :: Validation Error User -> IO ()
+display userValidation = case userValidation of
+                         Failure error -> print (unlines (coerce error))
+                         Success (User username password) -> print ("hello " ++ coerce username)
 
 -- Main
 main :: IO ()
 main = do
-  putStrLn "Please enter your user name"
+  putStrLn "Please enter your user name:"
   username <- getLine
-  putStrLn "Please enter your password"
+  putStrLn "Please enter your password:"
   password <- getLine
-  print (validateCredentials username password)
+  putStrLn ""
+  display (validateCredentials username password)
