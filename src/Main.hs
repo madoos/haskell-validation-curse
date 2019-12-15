@@ -54,8 +54,9 @@ validatePassword password = validateHasSpace password
 identifyLabel :: String -> (a -> Validation Error a) -> a -> Validation Error a
 identifyLabel message f x = case f x of 
                               Success x -> Success x  
-                              Failure error -> Failure   (Error [message] <> error) 
+                              Failure error -> Failure (Error [message] <> error) 
                                                       
+
 validateCredentials :: String -> String -> Validation Error User
 validateCredentials username password = User <$> username' <*> password' where
                                         username' = Username <$> identifyLabel "Username Errors:" validateUsername username
